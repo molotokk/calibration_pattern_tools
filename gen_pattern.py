@@ -4,68 +4,102 @@ from svgfig import *
 #import sys
 import argparse
 
-class PatternMaker:
-    def __init__(self, cols, rows, output, units, square_size, page_width, page_height):
-        self.cols = cols
-        self.rows = rows
-        self.output = output
-        self.units = units
-        self.spacing = square_size
-        self.radius = 1
-        self.width = page_width
-        self.height = page_height
-        self.g = SVG("g") # the svg group container
 
-    def recalcParameters(self):
+
+class PatternMaker:
+    def __init__(self, pattern_type):
+        self.pattern_type = pattern_type
+        self.columns = 8
+        self.rows = 6
+        self.output = 'out.svg'
+        self.units = 'mm'
+        self.spacing = None
+        self.radius = None
+        self.width = 210
+        self.height = 297
+        self.g = SVG("g") # the svg group container
+        return
+
+    def recalculateParameters(self):
+        # If circle or square spacing is not defined, calculate it to fit page dimensions
+        if not args.spacing:
+            if (self.pattern_type == 'checkerboard'): # hack to correctly arrange the checkerboard pattern
+                w_spacing = math.floor(args.page_width * 0.95 / (args.columns + 1))
+                h_spacing = math.floor(args.page_height * 0.95 / (args.rows + 1))
+            else:
+                w_spacing = math.floor(args.page_width / (args.columns))
+                h_spacing = math.floor(args.page_height / (args.rows))
+            self.spacing = min(w_spacing, h_spacing)
+
         if self.radius is None:
             self.radius = self.spacing / 5.0
-
+        return
 
     def printParameters(self):
-        print "Spacing      : ", self.spacing, self.units
-        print "Rows         : ", self.rows
-        print "Columns      : ", self.cols
+        print("Spacing      : %s %s" % (self.spacing, self.units))
+        print("Rows         : %s" % (self.rows) )
+        print("Columns      : %s" % (self.columns) )
+        return
 
+    def generatePattern(self):
+        self.recalculateParameters()
+        self.printParameters()
 
-    def makeCirclesPattern(self):
-        r =self.spacing / 5.0 #radius is a 5th of the spacing TODO parameterize
-        c_margin = (self.width - (self.cols + 1) * self.spacing) / 2
+        #dict for easy lookup of pattern type
+        mp = {"circles": self.__make_circles_pattern,
+              "acircles": self.__make_acircles_pattern,
+              "checkerboard": self.__make_checkerboard_pattern}
+        mp[self.pattern_type]()
+        return
+
+    def savePattern(self, output_file):
+        c = canvas(self.g, width="%d%s" % (self.width, self.units),
+                   height="%d%s" % (self.height, self.units),
+                   viewBox="0 0 %d %d" % (self.width, self.height))
+        c.save(output_file)
+
+        # View the generate file
+        #c.inkview(output_file)
+        return
+
+    def __make_circles_pattern(self):
+        r =self.spacing / 5.0  # radius is a 5th of the spacing TODO parameterize
+        c_margin = (self.width - (self.columns + 1) * self.spacing) / 2
         r_margin = (self.height - (self.rows + 1) * self.spacing) / 2
-        for x in range(1, self.cols + 1):
+        for x in range(1, self.columns + 1):
             for y in range(1, self.rows + 1):
                 dot = SVG("circle", cx=x *self.spacing + c_margin, cy=y * self.spacing + r_margin, r=r, fill="black",
                     stroke="none")
                 self.g.append(dot)
+        return
 
-    def makeACirclesPattern(self):
+    def __make_acircles_pattern(self):
         r =self.spacing / 5.0
-        c_margin = (self.width - (self.cols - 1) * self.spacing) / 2
+        c_margin = (self.width - (self.columns - 1) * self.spacing) / 2
         r_margin = (self.height - (self.rows - 1) * self.spacing) / 2
-        for i in range(0, self.cols):
+        for i in range(0, self.columns):
             for j in range(0, self.rows):
                 if ((i + j) % 2): # similar to checkerboard
                     dot = SVG("circle", cx=(i) * self.spacing + c_margin, cy=(j) * self.spacing + r_margin, width=self.spacing,
                         height=self.spacing, r=r, fill="black", stroke="none")
                     #dot = SVG("circle", cx= ((j*2 + i%2)*spacing) +self.spacing , cy=self.height - (i *self.spacing +self.spacing) , r=r, fill="black")
                     self.g.append(dot)
+        return
 
-    def makeCheckerboardPattern(self):
+    def __make_checkerboard_pattern(self):
         # center the pattern in the middle of the page
-        c_margin = float((self.width - (self.cols + 1) *self.spacing) / 2)
+        c_margin = float((self.width - (self.columns + 1) *self.spacing) / 2)
         r_margin = float((self.height - (self.rows + 1) *self.spacing) / 2)
         #print c_margin, r_margin
-        for i in range(0, self.cols + 1): # we need to draw internal corners
+        for i in range(0, self.columns + 1): # we need to draw internal corners
             for j in range(0, self.rows + 1):
                 if ((i + j) % 2):
                     dot = SVG("rect", x=(i) * self.spacing + c_margin, y=(j) * self.spacing + r_margin, width=self.spacing,
                         height=self.spacing, fill="black", stroke="none")
                     self.g.append(dot)
+        return
 
-    def save(self):
-        c = canvas(self.g, width="%d%s" % (self.width, self.units), height="%d%s" % (self.height, self.units),
-            viewBox="0 0 %d %d" % (self.width, self.height))
-        # View the generate file
-        #c.firefox(self.output)
+
 
 
     #def makePattern(cols,rows,output,p_type,units,square_size,page_width,page_height):
@@ -83,7 +117,8 @@ class PatternMaker:
     #    c.inkview(output)
 
 
-def main():
+if __name__ == "__main__":
+
     # parse command line options
     parser = argparse.ArgumentParser(description=("Script to generate optical calibration patterns."
                                                   " Currently supported are checkerboard, circles and assymetrical "
@@ -93,7 +128,9 @@ def main():
 
     group_r_c = parser.add_argument_group("arrangement of markers")
     group_r_c.add_argument("-s", "--spacing", type=int,
-        help="Spacing between rows and columns of calibration points. In case of 'checkerboard' patternself.spacing is is equal to square size.")
+        help="Spacing between rows and columns of calibration points. In case of 'checkerboard' pattern spacing  \
+        is equal to square size.",
+        default=None)
     group_r_c.add_argument("-r", "--rows", type=int, default=8)
     group_r_c.add_argument("-c", "--columns", type=int, default=6)
 
@@ -108,40 +145,28 @@ def main():
 
     args = parser.parse_args()
 
+    print("\nGenerating calibration pattern\n")
+
     # Choose used paper size
     paper_sizes = {"us": ['mm', 216, 279], "a4": ['mm', 210, 297], "a3": ['mm', 297, 420]}
     if not (args.page_width and args.page_height):
         [args.units, args.page_width, args.page_height] = paper_sizes[args.paper_type]
-        print "\nGenerating calibration pattern\n"
-        print "Paper size   : ", args.paper_type
 
-    # TODO: move this to 
-    # If circle or squareself.spacing is not defined, calculate it to fit page dimensions
-    if not args.spacing:
-        if (args.type == 'checkerboard'): # small hack to correctly arrange the checkerboard pattern
-            w_spacing = math.floor(args.page_width * 0.95 / (args.columns + 1))
-            h_spacing = math.floor(args.page_height * 0.95 / (args.rows + 1))
-        else:
-            w_spacing = math.floor(args.page_width / (args.columns))
-            h_spacing = math.floor(args.page_height / (args.rows))
-        args.spacing = min(w_spacing, h_spacing)
+        print("Paper size   : %s" % (args.paper_type))
+        print(" width   :   %s" % (args.page_width))
+        print(" height  :   %s" % (args.page_height))
 
 
-    pm = PatternMaker(args.columns, args.rows, args.output, args.units, args.spacing, args.page_width,
-        args.page_height)
+    pm = PatternMaker(args.type)
+    pm.units = args.units
+    pm.width = args.page_width
+    pm.height = args.page_height
+    pm.rows = args.rows
+    pm.columns = args.columns
 
+    pm.generatePattern()
+    pm.savePattern(args.output)
 
-    pm.recalcParameters()
-    pm.printParameters()
-
-    #dict for easy lookup of pattern type
-    mp = {"circles": pm.makeCirclesPattern, "acircles": pm.makeACirclesPattern,
-          "checkerboard": pm.makeCheckerboardPattern}
-    mp[args.type]()
-    # save pattern to output
-    pm.save()
-    print "Saved as     : ", args.output
-
-if __name__ == "__main__":
-    main()
+    print("saved as     : %s" % (args.output))
+    print("\ndone.")
 
