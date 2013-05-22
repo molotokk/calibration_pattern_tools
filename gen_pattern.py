@@ -1,7 +1,7 @@
 #/usr/bin/env python
 
 from svgfig import *
-import sys
+#import sys
 import argparse
 
 class PatternMaker:
@@ -27,7 +27,6 @@ class PatternMaker:
         print "Columns      : ", self.cols
 
 
-
     def makeCirclesPattern(self):
         r =self.spacing / 5.0 #radius is a 5th of the spacing TODO parameterize
         c_margin = (self.width - (self.cols + 1) * self.spacing) / 2
@@ -45,8 +44,8 @@ class PatternMaker:
         for i in range(0, self.cols):
             for j in range(0, self.rows):
                 if ((i + j) % 2): # similar to checkerboard
-                    dot = SVG("circle", cx=(i) * self.spacing + c_margin, cy=(j) * self.spacing + r_margin, width=spacing,
-                        height=spacing, r=r, fill="black", stroke="none")
+                    dot = SVG("circle", cx=(i) * self.spacing + c_margin, cy=(j) * self.spacing + r_margin, width=self.spacing,
+                        height=self.spacing, r=r, fill="black", stroke="none")
                     #dot = SVG("circle", cx= ((j*2 + i%2)*spacing) +self.spacing , cy=self.height - (i *self.spacing +self.spacing) , r=r, fill="black")
                     self.g.append(dot)
 
@@ -58,14 +57,15 @@ class PatternMaker:
         for i in range(0, self.cols + 1): # we need to draw internal corners
             for j in range(0, self.rows + 1):
                 if ((i + j) % 2):
-                    dot = SVG("rect", x=(i) *self.spacing + c_margin, y=(j) * self.spacing + r_margin, width=spacing,
-                        height=spacing, fill="black", stroke="none")
+                    dot = SVG("rect", x=(i) * self.spacing + c_margin, y=(j) * self.spacing + r_margin, width=self.spacing,
+                        height=self.spacing, fill="black", stroke="none")
                     self.g.append(dot)
 
     def save(self):
         c = canvas(self.g, width="%d%s" % (self.width, self.units), height="%d%s" % (self.height, self.units),
             viewBox="0 0 %d %d" % (self.width, self.height))
-        c.inkview(self.output)
+        # View the generate file
+        #c.firefox(self.output)
 
 
     #def makePattern(cols,rows,output,p_type,units,square_size,page_width,page_height):
@@ -144,4 +144,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
+
