@@ -135,7 +135,7 @@ if __name__ == "__main__":
     group_r_c.add_argument("-c", "--columns", type=int, default=6)
 
     group_size = parser.add_argument_group("pre-defined paper sizes")
-    group_size.add_argument("-p", "--paper_type", choices=['letter', 'a4', 'a3'], default='a4',
+    group_size.add_argument("-p", "--paper_type", choices=['letter', 'a4', 'a3', 'a2'], default='a4',
         help="Note: Using the predefined sizes, units are automatically reset to mm.  Default: ISO A4")
 
     group_w_h = parser.add_argument_group("custom paper size definition")
@@ -148,7 +148,12 @@ if __name__ == "__main__":
     print("\nGenerating calibration pattern\n")
 
     # Choose used paper size
-    paper_sizes = {"us": ['mm', 216, 279], "a4": ['mm', 210, 297], "a3": ['mm', 297, 420]}
+    paper_sizes = {'us': ['mm', 216, 279],
+                   'a4': ['mm', 210, 297],
+                   'a3': ['mm', 297, 420],
+                   'a2': ['mm', 420, 594]
+    }
+
     if not (args.page_width and args.page_height):
         [args.units, args.page_width, args.page_height] = paper_sizes[args.paper_type]
 
